@@ -1,0 +1,31 @@
+service "" get_door_state(int <- void) by "148.47.223.167";
+
+verification{
+
+	// Randomly generate the number of tests. Minimum number is 2, and maximum is 4.
+	try_count <- [random] <- {2, 4};
+	counter <- 0;
+
+	while(counter < try_count){
+
+		// Increment counter	
+	    counter <- counter + 1;
+	
+		// Generate a random challenge: either to open (1) or close (0) the door.
+		door_state_challenge <- [random] <- {0, 1};
+		
+		// Request owner to perform an action according to the challenge
+		if (door_state_challenge){
+			[owner_action] <- "Open door";
+		}else{
+			[owner_action] <- "Close door";
+
+		}
+		
+		// Challenge service
+		door_state <- [get_door_state];
+		
+		// Verify the service
+		[verify] <- door_state == door_state_challenge;
+	}	
+}

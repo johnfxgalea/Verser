@@ -1,0 +1,181 @@
+usertype Text;
+hashfunction H1;
+
+protocol mech1(A,S)
+{
+    role A
+    {
+        fresh na, na2: Nonce;
+	fresh devspec: Text;
+        var ns: Nonce;
+	var vresult: Text;
+
+	 send_1(A, S,  na);
+	 recv_2(S, A,  ns, H1({A, na, ns}k(A, S)));
+	claim(A, Running, S, na, na2, devspec, ns);
+	 send_3(A, S, na2, devspec, H1( {devspec, S, ns, na2}k(A,S)));
+	 recv_4(S, A, vresult,  H1({na2, A, vresult}k(A,S)));
+
+	claim(A,Commit, S,  na, na2, devspec, ns, vresult);
+	claim_A1(A,Nisynch);	
+	claim_A2(A,Alive);      
+    }
+
+    role S
+    {
+        fresh ns: Nonce;
+	fresh vresult: Text;
+        var na, na2: Nonce;
+	var devspec: Text;
+
+	 recv_1(A, S,  na);
+	  send_2(S, A,  ns, H1({A, na, ns}k(A, S)));
+	 recv_3(A, S, na2, devspec, H1({devspec, S, ns, na2}k(A,S)));
+	claim(S, Running, A,  na, na2, devspec, ns, vresult);
+	 send_4(S, A, vresult,  H1({na2, A, vresult}k(A,S)));
+
+	claim(S, Commit, A, na, na2, devspec, ns);
+	claim_S1(S,Nisynch);	
+	claim_S2(S,Alive);      
+    }
+}
+
+protocol mech2(A,S)
+{
+    role A
+    {
+        fresh na: Nonce;
+	fresh  servspec: Text;
+	var b: Agent;
+
+	claim(A,Running, S, na, servspec);
+	send_1(A, S, na, servspec, H1({servspec, na, S}k(A,S)));
+	recv_2(S, A, b, H1({b,  na}k(A,S)));
+
+	claim(A,Commit, S, b, na);
+	claim_A3(A,Nisynch);	
+	claim_A4(A,Alive);      
+    }
+
+    role S
+    {
+	fresh b: Agent;
+        var na: Nonce;
+	var  servspec: Text;
+
+	recv_1(A, S, na, servspec, H1({servspec, na, S}k(A,S)));
+	claim(S,Running, A, b, na);
+	send_2(S, A, b, H1( {b, na}k(A,S)));
+
+	claim(S, Commit, A, na, servspec);
+     	claim_S3(S,Nisynch);	
+	claim_S4(S,Alive);      
+    }
+}
+
+usertype SessionKey;
+
+macro sid = (A,B, Kab);
+
+protocol mech3(A,B,S)
+{
+    role A
+    {
+        fresh na, na2: Nonce;   
+	var Kab: SessionKey;
+
+        send_1(A,B, {B, na}k(A,S), H1({{B, na}k(A,S)}k(A,S)));
+	recv_4(S, A, {Kab, B, na }k(A,S),   H1( {{Kab, B, na}k(A,S)}k(A,S)));	
+        claim(A,SID,sid);	
+	claim(A, Running, B, Kab, na2);	        
+	send_5(A,B, {B, na2}Kab, H1( {{B, na2}Kab}Kab));	
+	recv_6(B, A, na2);	
+	
+	claim(A,Commit,B, Kab, na2);	
+	claim(A, SKR,Kab);
+	claim(A,Nisynch);
+	claim(A,Alive);  
+    }
+
+    role B
+    {
+        fresh nb: Nonce;       
+	var ticketas, ticketmac: Ticket;    
+	var na2: Nonce;
+        var Kab: SessionKey;
+        
+	recv_1(A, B, ticketas, ticketmac);
+        send_2(B,S, {nb, A, ticketas, ticketmac}k(B,S), H1({{nb, A, ticketas, ticketmac}k(B,S)}k(B,S)));  
+	recv_3(S, B, {Kab, A, nb }k(B,S), H1({{Kab, A, nb }k(B,S)}k(B,S)));	
+	claim(B,SID,sid);	
+	recv_5(A,B, {B, na2}Kab, H1({{B, na2}Kab}Kab));	
+	claim(B, Running, A, Kab, na2);	
+	send_6(B, A, na2);        
+	
+	 claim(B, Commit, A, Kab, na2);	            
+        claim(B, SKR, Kab);	
+	claim(B,Nisynch);
+	claim(B,Alive);      
+	claim(B, Secret,nb);
+    }
+
+    role S
+    {    
+	fresh Kab: SessionKey;
+        var na,nb: Nonce;
+	
+	claim(S,SID, sid);        
+
+        recv_2(B, S, {nb, A, {B, na}k(A,S),  H1({{B, na}k(A,S)}k(A,S)) }k(B,S), H1({  {nb, A, {B, na}k(A,S),  H1({{B, na}k(A,S)}k(A,S)) }k(B,S)}k(B, S)));       	
+	send_3(S, B, {Kab, A, nb }k(B,S), H1({{Kab, A, nb }k(B,S)}k(B,S)));	
+	send_4(S, A, {Kab, B, na }k(A,S),  H1({{Kab, B, na }k(A,S)}k(A,S)));
+
+        claim(S, SKR, Kab);	
+        claim(S, Secret, nb);   
+	claim(S, Secret, na);
+	claim(S,Nisynch);
+	claim(S,Alive);
+    }
+}
+
+symmetric-role protocol mech4(A,B)
+{
+    role A
+    {
+        fresh na, na2: Nonce;
+        var nb: Nonce;
+	fresh req: Text;
+	var res: Text;
+
+
+	claim(A, Running , B, req, na, na2);
+	 send_1(A, B,  na);
+	 recv_2(B, A,  nb, H1({A, na, nb}k(A,B)));
+	 send_3(A, B, {B, req, nb, na2}k(A,B),  H1({ {B, req, nb, na2}k(A,B)}k(A,B))) ;
+	 recv_4(B, A,  {na2, A, res}k(A,B), H1({{na2, A, res}k(A,B)}k(A,B)));
+	
+	claim(A,Commit,B, res, nb );
+        claim_A2(A, Secret, res);             
+	claim_A3(A,Nisynch);	
+	claim_A4(A,Alive);      
+    }
+
+    role B
+    {
+        fresh nb: Nonce;
+        var na, na2: Nonce;
+	var req: Text;
+	fresh res: Text;
+
+	 recv_1(A, B,  na);
+	 send_2(B, A,  nb, H1({A, na, nb}k(A,B)));
+	 recv_3(A, B, {B, req, nb, na2}k(A,B), H1({{B, req, nb, na2}k(A,B)}k(A,B)));
+	 claim(B, Running , A, res, nb);
+	 send_4(B, A,  {na2, A, res}k(A,B), H1({{na2, A, res}k(A,B)}k(A,B)));
+
+	claim(B, Commit , A, req, na, na2);
+        claim_B2(B, Secret, res);       
+	claim_B3(B,Nisynch);	
+	claim_B4(B,Alive);      
+    }
+}

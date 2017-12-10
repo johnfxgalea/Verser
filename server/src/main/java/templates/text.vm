@@ -1,0 +1,24 @@
+// Declare services.
+service "$command1" set_temperature( void <- int) by "$ip1";
+service "$command2" sense_temperature(int <- void) by "$ip2";
+
+verification{
+
+	// Randomly generate a temperature value between the range of 18 to 32 Degrees.
+	tempchallenge <- [random] <- {18, 32};
+
+	// Request verified device to set the temperature to the temperature value
+	[set_temperature] <- tempchallenge;
+
+	// Wait 30 minutes for the room the reach the temperature.
+	[delay] <- 1800;
+
+	// Challenge device to sense the temperature.
+	sensedtemp <- [sense_temperature];
+
+	// Define a value window to cater for marginal error
+	{templower, tempupper} <- {tempchallenge - 1, tempchallenge + 1};
+
+	// verify service
+	[verify] <- templower <= sensedtemp && sensedtemp <= tempupper && sensedtemp <= tempupper;
+}

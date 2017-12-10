@@ -1,0 +1,35 @@
+usertype Text;
+hashfunction H1;
+
+protocol mech2(A,S)
+{
+    role A
+    {
+        fresh na: Nonce;
+	fresh  servspec: Text;
+	var b: Agent;
+
+	claim(A,Running, S, na, servspec);
+	send_1(A, S, na, servspec, H1({servspec, na, S}k(A,S)));
+	recv_2(S, A, b, H1({b,  na}k(A,S)));
+
+	claim(A,Commit, S, b, na);
+	claim_A3(A,Nisynch);	
+	claim_A4(A,Alive);      
+    }
+
+    role S
+    {
+	fresh b: Agent;
+        var na: Nonce;
+	var  servspec: Text;
+
+	recv_1(A, S, na, servspec, H1({servspec, na, S}k(A,S)));
+	claim(S,Running, A, b, na);
+	send_2(S, A, b, H1( {b, na}k(A,S)));
+
+	claim(S, Commit, A, na, servspec);
+     	claim_S3(S,Nisynch);	
+	claim_S4(S,Alive);      
+    }
+}

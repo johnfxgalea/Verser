@@ -1,0 +1,66 @@
+
+usertype SessionKey;
+hashfunction H1;
+
+macro sid = (A,B, Kab);
+
+protocol mech3(A,B,S)
+{
+    role A
+    {
+        fresh na, na2: Nonce;   
+	var Kab: SessionKey;
+
+        send_1(A,B, {B, na}k(A,S), H1({{B, na}k(A,S)}k(A,S)));
+	recv_4(S, A, {Kab, B, na }k(A,S),   H1( {{Kab, B, na}k(A,S)}k(A,S)));	
+        claim(A,SID,sid);	
+	claim(A, Running, B, Kab, na2);	        
+	send_5(A,B, {B, na2}Kab, H1( {{B, na2}Kab}Kab));	
+	recv_6(B, A, na2);	
+	
+	claim(A,Commit,B, Kab, na2);	
+	claim(A, SKR,Kab);
+	claim(A,Nisynch);
+	claim(A,Alive);  
+    }
+
+    role B
+    {
+        fresh nb: Nonce;       
+	var ticketas, ticketmac: Ticket;    
+	var na2: Nonce;
+        var Kab: SessionKey;
+        
+	recv_1(A, B, ticketas, ticketmac);
+        send_2(B,S, {nb, A, ticketas, ticketmac}k(B,S), H1({{nb, A, ticketas, ticketmac}k(B,S)}k(B,S)));  
+	recv_3(S, B, {Kab, A, nb }k(B,S), H1({{Kab, A, nb }k(B,S)}k(B,S)));	
+	claim(B,SID,sid);	
+	recv_5(A,B, {B, na2}Kab, H1({{B, na2}Kab}Kab));	
+	claim(B, Running, A, Kab, na2);	
+	send_6(B, A, na2);        
+	
+	 claim(B, Commit, A, Kab, na2);	            
+        claim(B, SKR, Kab);	
+	claim(B,Nisynch);
+	claim(B,Alive);      
+	claim(B, Secret,nb);
+    }
+
+    role S
+    {    
+	fresh Kab: SessionKey;
+        var na,nb: Nonce;
+	
+	claim(S,SID, sid);        
+
+        recv_2(B, S, {nb, A, {B, na}k(A,S),  H1({{B, na}k(A,S)}k(A,S)) }k(B,S), H1({  {nb, A, {B, na}k(A,S),  H1({{B, na}k(A,S)}k(A,S)) }k(B,S)}k(B, S)));       	
+	send_3(S, B, {Kab, A, nb }k(B,S), H1({{Kab, A, nb }k(B,S)}k(B,S)));	
+	send_4(S, A, {Kab, B, na }k(A,S),  H1({{Kab, B, na }k(A,S)}k(A,S)));
+
+        claim(S, SKR, Kab);	
+        claim(S, Secret, nb);   
+	claim(S, Secret, na);
+	claim(S,Nisynch);
+	claim(S,Alive);
+    }
+}

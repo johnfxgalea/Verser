@@ -1,0 +1,44 @@
+usertype Text;
+hashfunction H1;
+
+symmetric-role protocol mech4(A,B)
+{
+    role A
+    {
+        fresh na, na2: Nonce;
+        var nb: Nonce;
+	fresh req: Text;
+	var res: Text;
+
+
+	claim(A, Running , B, req, na, na2);
+	 send_1(A, B,  na);
+	 recv_2(B, A,  nb, H1({A, na, nb}k(A,B)));
+	 send_3(A, B, {B, req, nb, na2}k(A,B),  H1({ {B, req, nb, na2}k(A,B)}k(A,B))) ;
+	 recv_4(B, A,  {na2, A, res}k(A,B), H1({{na2, A, res}k(A,B)}k(A,B)));
+	
+	claim(A,Commit,B, res, nb );
+        claim_A2(A, Secret, res);             
+	claim_A3(A,Nisynch);	
+	claim_A4(A,Alive);      
+    }
+
+    role B
+    {
+        fresh nb: Nonce;
+        var na, na2: Nonce;
+	var req: Text;
+	fresh res: Text;
+
+	 recv_1(A, B,  na);
+	 send_2(B, A,  nb, H1({A, na, nb}k(A,B)));
+	 recv_3(A, B, {B, req, nb, na2}k(A,B), H1({{B, req, nb, na2}k(A,B)}k(A,B)));
+	 claim(B, Running , A, res, nb);
+	 send_4(B, A,  {na2, A, res}k(A,B), H1({{na2, A, res}k(A,B)}k(A,B)));
+
+	claim(B, Commit , A, req, na, na2);
+        claim_B2(B, Secret, res);       
+	claim_B3(B,Nisynch);	
+	claim_B4(B,Alive);      
+    }
+}
